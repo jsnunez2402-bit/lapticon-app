@@ -58,7 +58,7 @@ lib/
 ├── services/
 │   ├── api_client.dart        # Todas las llamadas REST con Bearer idToken
 │   └── chat_service.dart      # Chat en Firestore
-├── widgets/                   # CityField (autocompletado), chips, vistas vacías
+├── widgets/                   # RutaSelector (ciudades del backend filtradas: Colombia ↔ Miami/Mexico City/New York)
 └── screens/
     ├── login_screen.dart
     ├── register_screen.dart   # Firebase Auth + POST /api/users/register
@@ -78,8 +78,10 @@ lib/
 2. **Cuenta B (viajero):** pestaña *Viajar* → *Registrar viaje* con la misma
    ruta → aparece la encomienda en "Disponibles" → *Tomar encomienda*.
 3. Ambos abren el **Chat** desde la tarjeta de la encomienda.
-4. El viajero pulsa *Entregada* o el remitente pulsa *Recibida*
-   → estado `recibida`.
+4. El viajero pulsa *Entregada* (estado `entregada`) y el remitente
+   confirma con *Recibida* (estado `recibida`).
+5. El remitente puede *Retirar* una encomienda que nadie ha tomado: la API no
+   tiene DELETE ni estado `cancelada`, así que queda como `vencida`.
 
 Un mismo usuario puede ser remitente y viajero: ambos roles están siempre
 disponibles como pestañas, así el rol no se pierde al cambiar de teléfono.
@@ -94,12 +96,12 @@ disponibles como pestañas, así el rol no se pierde al cambiar de teléfono.
 | Crear encomienda | `POST /api/encomiendas` |
 | Encomiendas de mi ruta | `GET /api/encomiendas/buscar?origen=&destino=` |
 | Tomar encomienda | `PUT /api/encomiendas/tomar/{id}` |
-| Marcar recibida | `PUT /api/encomiendas/{id}/estado` `{ "estado": "recibida" }` |
+| Entregada / recibida / retirar | `PUT /api/encomiendas/{id}/estado` con `entregada`, `recibida` o `vencida` |
 | Mi viaje activo | `GET /api/viajes/disponible` |
 | Registrar viaje | `POST /api/viajes` |
 | Completar/cancelar viaje | `PATCH /api/viajes/{id}/estado` |
 | Estado del chat | `GET /api/chats/estado/{chatId}` |
-| Ciudades (autocompletado) | `GET /api/ciudades/ciudades` |
+| Ciudades (filtradas a las 6 permitidas) | `GET /api/ciudades/ciudades` |
 
 ## Chat (Firestore)
 

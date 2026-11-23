@@ -135,6 +135,13 @@ class ApiClient {
     }
   }
 
+  /// PUT /api/users/{uid}. Solo el dueño puede editar su perfil.
+  /// No se envían uid ni email: el backend responde 400 si se intentan cambiar.
+  Future<Map<String, dynamic>?> actualizarPerfil(
+      String uid, Map<String, dynamic> datos) async {
+    return _objeto(await put('/api/users/$uid', datos), 'user');
+  }
+
   // --------------------------------------------------------- encomiendas
 
   Future<List<Encomienda>> misEncomiendas() async {
@@ -178,7 +185,7 @@ class ApiClient {
 
   Future<void> tomarEncomienda(String id) => put('/api/encomiendas/tomar/$id', {});
 
-  /// estado: disponible | tomada | recibida | vencida
+  /// estado: disponible | tomada | entregada | recibida | vencida
   Future<void> cambiarEstadoEncomienda(String id, String estado) =>
       put('/api/encomiendas/$id/estado', {'estado': estado});
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
 import '../utils.dart';
-import '../widgets/city_field.dart';
+import '../widgets/ruta_selector.dart';
 import '../widgets/comunes.dart';
 
 /// POST /api/encomiendas
@@ -81,10 +81,7 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              CityField(
-                  controller: _origen, label: 'Ciudad de origen', icon: Icons.trip_origin),
-              const SizedBox(height: 16),
-              CityField(controller: _destino, label: 'Ciudad de destino', icon: Icons.place),
+              RutaSelector(origen: _origen, destino: _destino),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _obs,

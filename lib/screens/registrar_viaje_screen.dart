@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
 import '../utils.dart';
-import '../widgets/city_field.dart';
+import '../widgets/ruta_selector.dart';
 import '../widgets/comunes.dart';
 
 /// POST /api/viajes. Regla de negocio: solo un viaje "disponible" a la vez.
@@ -97,11 +97,12 @@ class _RegistrarViajeScreenState extends State<RegistrarViajeScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              CityField(
-                  controller: _origen, label: 'Ciudad de origen', icon: Icons.flight_takeoff),
-              const SizedBox(height: 16),
-              CityField(
-                  controller: _destino, label: 'Ciudad de destino', icon: Icons.flight_land),
+              RutaSelector(
+                origen: _origen,
+                destino: _destino,
+                iconoOrigen: Icons.flight_takeoff,
+                iconoDestino: Icons.flight_land,
+              ),
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,

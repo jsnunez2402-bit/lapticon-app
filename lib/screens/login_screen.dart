@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
 import '../widgets/comunes.dart';
 import 'register_screen.dart';
 
@@ -70,89 +71,142 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final alto = MediaQuery.of(context).size.height;
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(Icons.luggage, size: 72, color: cs.primary),
-                    const SizedBox(height: 8),
-                    Text('Lapticon',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text('Envía con quien ya viaja',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: cs.onSurfaceVariant)),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                          labelText: 'Correo', prefixIcon: Icon(Icons.email_outlined)),
-                      validator: (v) =>
-                          (v == null || !v.contains('@')) ? 'Correo inválido' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _pass,
-                      obscureText: !_ver,
-                      autofillHints: const [AutofillHints.password],
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(_ver ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _ver = !_ver),
+      body: Stack(children: [
+        // Fondo azul superior
+        Container(
+          height: alto * 0.45,
+          decoration: const BoxDecoration(
+            gradient: AppColors.gradiente,
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
+          ),
+        ),
+        SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(children: [
+                  // Logo de la app
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
                         ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: Image.asset('assets/icon/logo.png', width: 96, height: 96),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Lapticon',
+                      style: TextStyle(
+                          color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  const Text('Envía con quien ya viaja',
+                      style: TextStyle(color: Colors.white70, fontSize: 15)),
+                  const SizedBox(height: 28),
+                  // Tarjeta del formulario
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.azulOscuro.withValues(alpha: 0.10),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _form,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text('Iniciar sesión',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.tinta)),
+                          const SizedBox(height: 4),
+                          Text('Ingresa con tu correo y contraseña',
+                              style: TextStyle(color: Colors.grey.shade600)),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            controller: _email,
+                            keyboardType: TextInputType.emailAddress,
+                            autofillHints: const [AutofillHints.email],
+                            decoration: const InputDecoration(
+                                labelText: 'Correo',
+                                prefixIcon: Icon(Icons.email_outlined)),
+                            validator: (v) =>
+                                (v == null || !v.contains('@')) ? 'Correo inválido' : null,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _pass,
+                            obscureText: !_ver,
+                            autofillHints: const [AutofillHints.password],
+                            decoration: InputDecoration(
+                              labelText: 'Contraseña',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(_ver ? Icons.visibility_off : Icons.visibility),
+                                onPressed: () => setState(() => _ver = !_ver),
+                              ),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Requerida' : null,
+                            onFieldSubmitted: (_) => _entrar(),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                                onPressed: _recuperar,
+                                child: const Text('¿Olvidaste tu contraseña?')),
+                          ),
+                          const SizedBox(height: 4),
+                          FilledButton(
+                            onPressed: _cargando ? null : _entrar,
+                            child: _cargando
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white))
+                                : const Text('Entrar'),
+                          ),
+                        ],
                       ),
-                      validator: (v) => (v == null || v.isEmpty) ? 'Requerida' : null,
-                      onFieldSubmitted: (_) => _entrar(),
                     ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                          onPressed: _recuperar, child: const Text('¿Olvidaste tu contraseña?')),
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: _cargando ? null : _entrar,
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      child: _cargando
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Iniciar sesión'),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
+                  ),
+                  const SizedBox(height: 20),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text('¿No tienes cuenta?', style: TextStyle(color: Colors.grey.shade700)),
+                    TextButton(
                       onPressed: _cargando
                           ? null
                           : () => Navigator.push(context,
                               MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                      child: const Text('Crear una cuenta'),
+                      child: const Text('Crear una cuenta',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
-                  ],
-                ),
+                  ]),
+                ]),
               ),
             ),
           ),
         ),
-      ),
+      ]),
     );
   }
 }

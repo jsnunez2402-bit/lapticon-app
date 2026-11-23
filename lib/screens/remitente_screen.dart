@@ -1,9 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/encomienda.dart';
 import '../services/api_client.dart';
-import '../utils.dart';
 import '../widgets/comunes.dart';
+import '../widgets/encomienda_card.dart';
 import 'chat_screen.dart';
 import 'crear_encomienda_screen.dart';
 
@@ -20,12 +21,13 @@ class _RemitenteScreenState extends State<RemitenteScreen> {
   String? _error;
   bool _cargando = true;
 
-  static const _orden = ['tomada', 'disponible', 'recibida', 'vencida'];
+  static const _orden = ['entregada', 'tomada', 'disponible', 'recibida', 'vencida'];
   static const _titulos = {
+    'entregada': 'Entregadas: confirma que las recibiste',
     'tomada': 'En camino (tomadas por un viajero)',
     'disponible': 'Esperando viajero',
     'recibida': 'Recibidas',
-    'vencida': 'Vencidas',
+    'vencida': 'Vencidas o retiradas',
   };
 
   @override
@@ -57,7 +59,7 @@ class _RemitenteScreenState extends State<RemitenteScreen> {
 
   Future<void> _confirmarRecibida(Encomienda e) async {
     final ok = await confirmar(context, 'Confirmar recepción',
-        '¿La encomienda ${e.ruta} ya fue entregada en destino?');
+        '¿Ya recibiste la encomienda ${e.ruta} en destino?');
     if (!ok || !mounted) return;
     try {
       await ApiClient.instance.cambiarEstadoEncomienda(e.id, 'recibida');
@@ -65,6 +67,22 @@ class _RemitenteScreenState extends State<RemitenteScreen> {
       _cargar();
     } catch (err) {
       if (mounted) avisar(context, '$err', error: true);
+    }
+  }
+
+  /// La API no tiene DELETE ni estado "cancelada": para retirar una
+  /// publicación se marca como "vencida" (los viajeros dejan de verla).
+  /// Solo se permite mientras ningún viajero la haya tomado.
+  Future<void> _retirar(Encomienda e) async {
+    final ok = await confirmar(context, 'Retirar encomienda',
+        '¿Retirar la encomienda ${e.ruta}? Quedará como vencida y dejará de aparecer para los viajeros.');
+    if (!ok || !mounted) return;
+    try {
+      await ApiClient.instance.cambiarEstadoEncomienda(e.id, 'vencida');
+      if (mounted) avisar(context, 'Encomienda retirada.');
+      _cargar();
+    } catch (err) {
+      if (mounted) avisar(context, 'No se pudo retirar: $err', error: true);
     }
   }
 
@@ -83,17 +101,53 @@ class _RemitenteScreenState extends State<RemitenteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final items = _items ?? [];
+    int contar(bool Function(Encomienda) f) => items.where(f).length;
+    final nombre =
+        (FirebaseAuth.instance.currentUser?.displayName ?? '').trim().split(' ').first;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis encomiendas'),
-        actions: [IconButton(onPressed: _cargar, icon: const Icon(Icons.refresh))],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _nueva,
         icon: const Icon(Icons.add),
-        label: const Text('Nueva encomienda'),
+        label: const Text('Nueva encomienda', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
-      body: _cuerpo(),
+      body: Column(children: [
+        CabeceraGradiente(
+          subtitulo: nombre.isEmpty ? 'Hola 👋' : 'Hola, $nombre 👋',
+          titulo: 'Mis envíos',
+          acciones: [
+            IconButton(
+              onPressed: _cargar,
+              icon: const Icon(Icons.refresh_rounded),
+              color: Colors.white,
+            ),
+          ],
+          abajo: Row(children: [
+            Expanded(
+              child: StatBox(
+                  etiqueta: 'Disponibles',
+                  valor: contar((e) => e.estado == 'disponible'),
+                  icono: Icons.schedule),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StatBox(
+                  etiqueta: 'En camino',
+                  valor: contar((e) => e.estado == 'tomada' || e.estado == 'entregada'),
+                  icono: Icons.local_shipping_outlined),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StatBox(
+                  etiqueta: 'Recibidas',
+                  valor: contar((e) => e.estado == 'recibida'),
+                  icono: Icons.check_circle_outline),
+            ),
+          ]),
+        ),
+        Expanded(child: _cuerpo()),
+      ]),
     );
   }
 
@@ -119,9 +173,9 @@ class _RemitenteScreenState extends State<RemitenteScreen> {
       onRefresh: _cargar,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 96),
+        padding: const EdgeInsets.only(top: 4, bottom: 100),
         children: [
-          if (_cargando) const LinearProgressIndicator(),
+          if (_cargando) const LinearProgressIndicator(minHeight: 2),
           if (items.isEmpty)
             VacioView(
               icono: Icons.inventory_2_outlined,
@@ -133,7 +187,7 @@ class _RemitenteScreenState extends State<RemitenteScreen> {
                   label: const Text('Crear encomienda')),
             ),
           for (final estado in estados) ...[
-            SeccionTitulo('${_titulos[estado] ?? estado} (${grupos[estado]!.length})'),
+            SeccionTitulo('${_titulos[estado] ?? estado} · ${grupos[estado]!.length}'),
             for (final e in grupos[estado]!) _tarjeta(e),
           ],
         ],
@@ -142,61 +196,44 @@ class _RemitenteScreenState extends State<RemitenteScreen> {
   }
 
   Widget _tarjeta(Encomienda e) {
-    final tomada = e.estado == 'tomada' && e.viajeroId != null;
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Expanded(
-                child: Text(e.ruta,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-              ),
-              EstadoChip(e.estado),
-            ]),
-            const SizedBox(height: 6),
-            if (e.observaciones.isNotEmpty) Text(e.observaciones),
-            const SizedBox(height: 6),
-            Wrap(spacing: 16, runSpacing: 4, children: [
-              _dato(Icons.payments_outlined, e.valorTexto),
-              if (e.fechaVencimiento != null)
-                _dato(Icons.event_outlined, 'Vence ${fmtFecha(e.fechaVencimiento)}'),
-            ]),
-            if (tomada) ...[
-              const Divider(height: 24),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _chat(e),
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Chat viajero'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => _confirmarRecibida(e),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Recibida'),
-                  ),
-                ),
-              ]),
-            ],
-          ],
+    final tomada =
+        (e.estado == 'tomada' || e.estado == 'entregada') && e.viajeroId != null;
+
+    Widget? acciones;
+    if (e.estado == 'disponible') {
+      acciones = Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: () => _retirar(e),
+          icon: const Icon(Icons.cancel_outlined),
+          label: const Text('Retirar'),
+          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
         ),
-      ),
+      );
+    } else if (tomada) {
+      acciones = Row(children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _chat(e),
+            icon: const Icon(Icons.chat_bubble_outline, size: 18),
+            label: const Text('Chat'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: () => _confirmarRecibida(e),
+            icon: const Icon(Icons.check_rounded, size: 18),
+            label: const Text('Recibida'),
+          ),
+        ),
+      ]);
+    }
+
+    return EncomiendaCard(
+      e: e,
+      acciones: acciones,
+      nota: e.estado == 'disponible' ? 'Esperando que un viajero la tome' : null,
     );
   }
-
-  Widget _dato(IconData i, String t) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(i, size: 16, color: Colors.grey.shade700),
-        const SizedBox(width: 4),
-        Text(t, style: TextStyle(color: Colors.grey.shade800)),
-      ]);
 }

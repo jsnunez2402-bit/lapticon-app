@@ -143,7 +143,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       constraints: BoxConstraints(
                           maxWidth: MediaQuery.of(context).size.width * 0.75),
                       decoration: BoxDecoration(
-                        color: mio ? cs.primary : cs.surfaceContainerHighest,
+                        color: mio ? cs.primary : Colors.white,
+                        border: mio ? null : Border.all(color: const Color(0xFFE3E8F1)),
                         borderRadius: BorderRadius.only(
                           topLeft: const Radius.circular(14),
                           topRight: const Radius.circular(14),
@@ -181,10 +182,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 textAlign: TextAlign.center, style: TextStyle(color: cs.onErrorContainer)),
           )
         else
-          SafeArea(
+          Container(
+            color: Colors.white,
+            child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
               child: Row(children: [
                 Expanded(
                   child: TextField(
@@ -204,10 +207,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(width: 6),
                 IconButton.filled(
                   onPressed: _enviando ? null : _enviar,
-                  icon: const Icon(Icons.send),
+                  icon: const Icon(Icons.send_rounded),
                 ),
               ]),
             ),
+          ),
           ),
       ]),
     );
